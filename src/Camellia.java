@@ -1,0 +1,125 @@
+import java.util.Arrays;
+
+public class Camellia {
+
+    private static final int[] SBOX1 = {
+        0x70, 0x82, 0x2C, 0xEC, 0xB3, 0x27, 0xC0, 0xE5, 0xE4, 0x85, 0x57, 0x35, 0xEA, 0x0C, 0xAE, 0x41,
+        0x23, 0xEF, 0x6B, 0x93, 0x45, 0x19, 0xA5, 0x21, 0xED, 0x0E, 0x4F, 0x4E, 0x1D, 0x65, 0x92, 0xBD,
+        0x86, 0xB8, 0xAF, 0x8F, 0x7C, 0xEB, 0x1F, 0xCE, 0x3E, 0x30, 0xDC, 0x5F, 0x5E, 0xC5, 0x0B, 0x1A,
+        0xA6, 0xE1, 0x39, 0xCA, 0xD5, 0x47, 0x5D, 0x3D, 0xD9, 0x01, 0x5A, 0xD6, 0x51, 0x56, 0x6C, 0x4D,
+        0x8B, 0x0D, 0x9A, 0x66, 0xFB, 0xCC, 0xB0, 0x2D, 0x74, 0x12, 0x2B, 0x20, 0xF0, 0xB1, 0x84, 0x99,
+        0xDF, 0x4C, 0xCB, 0xC2, 0x34, 0x7E, 0x76, 0x05, 0x6D, 0xB7, 0xA9, 0x31, 0xD1, 0x17, 0x04, 0xD7,
+        0x14, 0x58, 0x3A, 0x61, 0xDE, 0x1B, 0x11, 0x1C, 0x32, 0x0F, 0x9C, 0x16, 0x53, 0x18, 0xF2, 0x22,
+        0xFE, 0x44, 0xCF, 0xB2, 0xC3, 0xB5, 0x7A, 0x91, 0x24, 0x08, 0xE8, 0xA8, 0x60, 0xFC, 0x69, 0x50,
+        0xAA, 0xD0, 0xA0, 0x7D, 0xA1, 0x89, 0x62, 0x97, 0x54, 0x5B, 0x1E, 0x95, 0xE0, 0xFF, 0x64, 0xD2,
+        0x10, 0xC4, 0x00, 0x48, 0xA3, 0xF7, 0x75, 0xDB, 0x8A, 0x03, 0xE6, 0xDA, 0x09, 0x3F, 0xDD, 0x94,
+        0x87, 0x5C, 0x83, 0x02, 0xCD, 0x4A, 0x90, 0x33, 0x73, 0x67, 0xF6, 0xF3, 0x9D, 0x7F, 0xBF, 0xE2,
+        0x52, 0x9B, 0xD8, 0x26, 0xC8, 0x37, 0xC6, 0x3B, 0x81, 0x96, 0x6F, 0x4B, 0x13, 0xBE, 0x63, 0x2E,
+        0xE9, 0x79, 0xA7, 0x8C, 0x9F, 0x6E, 0xBC, 0x8E, 0x29, 0xF5, 0xF9, 0xB6, 0x2F, 0xFD, 0xB4, 0x59,
+        0x78, 0x98, 0x06, 0x6A, 0xE7, 0x46, 0x71, 0xBA, 0xD4, 0x25, 0xAB, 0x42, 0x88, 0xA2, 0x8D, 0xFA,
+        0x72, 0x07, 0xB9, 0x55, 0xF8, 0xEE, 0xAC, 0x0A, 0x36, 0x49, 0x2A, 0x68, 0x3C, 0x38, 0xF1, 0xA4,
+        0x40, 0x28, 0xD3, 0x7B, 0xBB, 0xC9, 0x43, 0xC1, 0x15, 0xE3, 0xAD, 0xF4, 0x77, 0xC7, 0x80, 0x9E
+    };
+
+    private static final int[][] SIGMA = {
+        {0xA09E667F, 0x3BCC908B}, {0xB67AE858, 0x4CAA73B2}, 
+        {0xC6EF372F, 0xE94F82BE}, {0x54FF53A5, 0xF1D36F1C}, 
+        {0x10E527FA, 0xDE682D1D}, {0xB05688C2, 0xB3E6C1FD}
+    };
+
+    private static int rotateLeft(int value, int shift) {
+        return (value << shift) | (value >>> (32 - shift));
+    }
+
+    private static int F(int input) {
+        int x = (input & 0xFF);
+        return SBOX1[x]; // A S-Box deve ter todos os 256 valores
+    }
+
+    private static int[] generateSubKeys(int[] key) {
+        if (key.length != 4) {
+            throw new IllegalArgumentException("A chave deve ter 4 bytes.");
+        }
+    
+        int[] subKeys = new int[36]; // Para 36 subchaves
+    
+        // Inicializando KL e KR
+        int KL0 = key[0];
+        int KL1 = key[1];
+        int KR0 = key[2];
+        int KR1 = key[3];
+    
+        // Geração de KA e KB
+        subKeys[0] = KL0 ^ SIGMA[0][0];
+        subKeys[1] = KL1 ^ SIGMA[0][1];
+        subKeys[2] = KR0 ^ SIGMA[1][0];
+        subKeys[3] = KR1 ^ SIGMA[1][1];
+    
+        // Preencher subchaves restantes
+        for (int i = 4; i < 36; i++) {
+            subKeys[i] = rotateLeft(subKeys[i - 4], 17);
+            if (i % 4 == 0) {
+                // Acesse SIGMA usando módulo para evitar ArrayIndexOutOfBoundsException
+                subKeys[i] ^= SIGMA[(i / 4) % 6][i % 2];
+            }
+        }
+    
+        return subKeys;
+    }
+
+    public static int[] encrypt(int[] plaintext, int[] key) {
+        int[] subKeys = generateSubKeys(key);
+
+        // Passo inicial (dividir o bloco em duas partes)
+        int left = plaintext[0];
+        int right = plaintext[1];
+
+        // Executar as rodadas de Feistel
+        for (int i = 0; i < 18; i++) {
+            int temp = left ^ F(right ^ subKeys[i]);
+            left = right;
+            right = temp;
+        }
+
+        return new int[]{right, left}; // Inverter a ordem
+    }
+
+    public static int[] decrypt(int[] ciphertext, int[] key) {
+        int[] subKeys = generateSubKeys(key);
+    
+        // Passo inicial (dividir o bloco em duas partes)
+        int left = ciphertext[0];
+        int right = ciphertext[1];
+    
+        // Executar as rodadas de Feistel em ordem inversa
+        for (int i = 17; i >= 0; i--) {
+            int temp = left;
+            left = right;
+            right = temp ^ F(left ^ subKeys[i]);
+        }
+    
+        return new int[]{left, right}; // Inverter a ordem novamente
+    }
+
+    public static void main(String[] args) {
+        int[] key = {0x01234567, 0x89ABCDEF, 0x01234567, 0x89ABCDEF}; // Chave de 128 bits
+        int[] plaintext = {0x12345678, 0x9ABCDEF0}; // Texto plano
+
+        System.out.println("Texto original: [" + Integer.toHexString(plaintext[0]) + ", " + Integer.toHexString(plaintext[1]) + "]");
+
+        // Criptografia
+        int[] ciphertext = encrypt(plaintext, key);
+        System.out.println("Texto cifrado: [" + Integer.toHexString(ciphertext[0]) + ", " + Integer.toHexString(ciphertext[1]) + "]");
+
+        // Descriptografia
+        int[] decryptedText = decrypt(ciphertext, key);
+        System.out.println("Texto plano: [" + Integer.toHexString(decryptedText[0]) + ", " + Integer.toHexString(decryptedText[1]) + "]");
+
+        // Verificação
+        if (Arrays.equals(plaintext, decryptedText)) {
+            System.out.println("A decriptação foi bem-sucedida! O texto original e o texto decripto correspondem.");
+        } else {
+            System.out.println("A decriptação falhou! O texto original e o texto decripto NÃO correspondem.");
+        }
+    }
+}
